@@ -21,14 +21,13 @@ import com.braintreegateway.TransactionRequest;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-        Environment.SANDBOX,
-        "your_merchant_id",
-        "your_public_key",
-        "your_private_key"
-    );
+            Environment.SANDBOX,
+            "your_merchant_id",
+            "your_public_key",
+            "your_private_key"
+            );
 
-    private static String renderHtml(String templateFname,
-        HashMap<String, String> valuesMap) {
+    private static String renderHtml(String templateFname, HashMap<String, String> valuesMap) {
         try {
             File formFile = new File(templateFname);
             String formTemplate = FileUtils.readFileToString(formFile);
@@ -48,20 +47,19 @@ public class App {
 
                 String braintreeUrl = gateway.transparentRedirect().url();
                 TransactionRequest trParams = new TransactionRequest()
-                                                   .type(Transaction.Type.SALE)
-                                                   .amount(new BigDecimal("1000.00"))
-                                                   .options()
-                                                   .submitForSettlement(true)
-                                                   .done();
+                        .type(Transaction.Type.SALE)
+                        .amount(new BigDecimal("1000.00"))
+                        .options()
+                            .submitForSettlement(true)
+                            .done();
 
-                String trData = gateway.transparentRedirect().trData(trParams,
-                  "http://localhost:4567/braintree");
+                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
 
                 // return HTML with braintreeUrl and trData intermixed
-               HashMap<String, String> valuesMap = new HashMap<String, String>();
-               valuesMap.put("braintreeUrl", braintreeUrl);
-               valuesMap.put("trData", trData);
-               return renderHtml("views/form.html", valuesMap);
+                HashMap<String, String> valuesMap = new HashMap<String, String>();
+                valuesMap.put("braintreeUrl", braintreeUrl);
+                valuesMap.put("trData", trData);
+                return renderHtml("views/form.html", valuesMap);
             }
         });
 
@@ -69,9 +67,7 @@ public class App {
             @Override
             public Object handle(spark.Request request, Response response) {
                 response.type("text/html");
-                Result<Transaction> result = gateway
-                                              .transparentRedirect()
-                                              .confirmTransaction(request.queryString());
+                Result<Transaction> result = gateway.transparentRedirect().confirmTransaction(request.queryString());
                 String message = "";
                 if (result.isSuccess()) {
                     message = result.getTarget().getStatus().toString();

@@ -20,14 +20,13 @@ import com.braintreegateway.Result;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-        Environment.SANDBOX,
-        "your_merchant_id",
-        "your_public_key",
-        "your_private_key"
-    );
+            Environment.SANDBOX,
+            "your_merchant_id",
+            "your_public_key",
+            "your_private_key"
+            );
 
-    static String renderHtml(String templateFname,
-        HashMap<String, String> valuesMap) {
+    static String renderHtml(String templateFname, HashMap<String, String> valuesMap) {
         try {
             File formFile = new File(templateFname);
             String formTemplate = FileUtils.readFileToString(formFile);
@@ -48,8 +47,7 @@ public class App {
                 String braintreeUrl = gateway.transparentRedirect().url();
                 CustomerRequest trParams = new CustomerRequest();
 
-                String trData = gateway.transparentRedirect().trData(trParams,
-                  "http://localhost:4567/braintree");
+                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
 
                 // return HTML with braintreeUrl and trData interpolated
                 HashMap<String, String> valuesMap = new HashMap<String, String>();
@@ -63,9 +61,7 @@ public class App {
             @Override
             public Object handle(spark.Request request, Response response) {
                 response.type("text/html");
-                Result<Customer> result = gateway
-                                            .transparentRedirect()
-                                            .confirmCustomer(request.queryString());
+                Result<Customer> result = gateway.transparentRedirect().confirmCustomer(request.queryString());
                 String message = "";
                 if (result.isSuccess()) {
                     message = result.getTarget().getEmail().toString();
@@ -76,7 +72,7 @@ public class App {
                 HashMap<String, String> valuesMap = new HashMap<String, String>();
                 valuesMap.put("message", message);
                 return renderHtml("views/response.html", valuesMap);
-              }
+            }
         });
     }
 }

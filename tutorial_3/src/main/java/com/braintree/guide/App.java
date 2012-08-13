@@ -22,14 +22,14 @@ import com.braintreegateway.SubscriptionRequest;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-        Environment.SANDBOX,
-        "your_merchant_id",
-        "your_public_key",
-        "your_private_key"
-    );
+            Environment.SANDBOX,
+            "your_merchant_id",
+            "your_public_key",
+            "your_private_key"
+            );
 
     private static String renderHtml(String templateFname,
-        HashMap<String, String> valuesMap) {
+            HashMap<String, String> valuesMap) {
         try {
             File formFile = new File(templateFname);
             String formTemplate = FileUtils.readFileToString(formFile);
@@ -50,8 +50,7 @@ public class App {
                 String braintreeUrl = gateway.transparentRedirect().url();
                 CustomerRequest trParams = new CustomerRequest();
 
-                String trData = gateway.transparentRedirect().trData(trParams,
-                  "http://localhost:4567/braintree");
+                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
 
                 // return HTML with braintreeUrl and trData interpolated
                 HashMap<String, String> valuesMap = new HashMap<String, String>();
@@ -65,9 +64,7 @@ public class App {
             @Override
             public Object handle(spark.Request request, Response response) {
                 response.type("text/html");
-                Result<Customer> result = gateway
-                                           .transparentRedirect()
-                                          .confirmCustomer(request.queryString());
+                Result<Customer> result = gateway.transparentRedirect().confirmCustomer(request.queryString());
                 HashMap<String, String> valuesMap = new HashMap<String, String>();
                 String message = "";
                 if (result.isSuccess()) {
@@ -86,26 +83,18 @@ public class App {
             @Override
             public Object handle(spark.Request request, Response response) {
                 response.type("text/html");
-                Customer customer = gateway
-                                      .customer()
-                                      .find(request.queryParams("id"));
-                String paymentMethodToken = customer
-                                              .getCreditCards()
-                                              .get(0)
-                                              .getToken();
+                Customer customer = gateway.customer().find(request.queryParams("id"));
+                String paymentMethodToken = customer.getCreditCards().get(0).getToken();
 
                 SubscriptionRequest req = new SubscriptionRequest()
-                                                .paymentMethodToken(paymentMethodToken)
-                                                .planId("test_plan_1");
+                        .paymentMethodToken(paymentMethodToken)
+                        .planId("test_plan_1");
 
-                Result<Subscription> result = gateway
-                                                .subscription()
-                                                .create(req);
+                Result<Subscription> result = gateway.subscription().create(req);
 
                 String message;
                 if (result.isSuccess()) {
-                    message = String.format("Subscriptions status: %s",
-                      result.getTarget().getStatus());
+                    message = String.format("Subscriptions status: %s", result.getTarget().getStatus());
                 } else {
                     message = String.format("Errors: %s", result.getMessage());
                 }
