@@ -1,19 +1,23 @@
 package com.braintree.guide;
 
+import static spark.Spark.get;
+
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.HashMap;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
-import static spark.Spark.get;
+
 import spark.Response;
 import spark.Route;
+
 import com.braintreegateway.BraintreeGateway;
+import com.braintreegateway.Environment;
+import com.braintreegateway.Result;
 import com.braintreegateway.Transaction;
 import com.braintreegateway.TransactionRequest;
-import com.braintreegateway.Result;
-import com.braintreegateway.Environment;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
@@ -54,7 +58,7 @@ public class App {
                   "http://localhost:4567/braintree");
 
                 // return HTML with braintreeUrl and trData intermixed
-               HashMap<String, String> valuesMap = new HashMap();
+               HashMap<String, String> valuesMap = new HashMap<String, String>();
                valuesMap.put("braintreeUrl", braintreeUrl);
                valuesMap.put("trData", trData);
                return renderHtml("views/form.html", valuesMap);
@@ -75,7 +79,7 @@ public class App {
                     message = result.getMessage();
                 }
 
-                HashMap<String, String> valuesMap = new HashMap();
+                HashMap<String, String> valuesMap = new HashMap<String, String>();
                 valuesMap.put("message", message);
                 return renderHtml("views/response.html", valuesMap);
             }
