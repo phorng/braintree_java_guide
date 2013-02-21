@@ -1,14 +1,15 @@
 package com.braintree.guide;
 
 import static spark.Spark.get;
+import static spark.Spark.post;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.math.BigDecimal;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.text.StrSubstitutor;
 
+import spark.Request;
 import spark.Response;
 import spark.Route;
 
@@ -19,89 +20,80 @@ import com.braintreegateway.Environment;
 import com.braintreegateway.Result;
 import com.braintreegateway.Subscription;
 import com.braintreegateway.SubscriptionRequest;
+import com.braintreegateway.Transaction;
+import com.braintreegateway.TransactionRequest;
+import com.braintreegateway.exceptions.NotFoundException;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-            Environment.SANDBOX,
-            "your_merchant_id",
-            "your_public_key",
-            "your_private_key"
-            );
+        Environment.SANDBOX,
+        "use_your_merchant_id",
+        "use_your_public_key",
+        "use_your_private_key"
+    );
 
-    private static String renderHtml(String templateFname,
-            HashMap<String, String> valuesMap) {
+    private static String renderHtml(String pageName) {
         try {
-            File formFile = new File(templateFname);
-            String formTemplate = FileUtils.readFileToString(formFile);
-            StrSubstitutor sub = new StrSubstitutor(valuesMap);
-            return sub.replace(formTemplate);
+            return FileUtils.readFileToString(new File(pageName));
         } catch (IOException e) {
-            return "";
+            return "Couldn't find " + pageName;
         }
     }
 
     public static void main(String[] args) {
         get(new Route("/") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                // set the response type
+            public Object handle(Request request, Response response) {
                 response.type("text/html");
-
-                String braintreeUrl = gateway.transparentRedirect().url();
-                CustomerRequest trParams = new CustomerRequest();
-
-                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
-
-                // return HTML with braintreeUrl and trData interpolated
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("braintreeUrl", braintreeUrl);
-                valuesMap.put("trData", trData);
-                return renderHtml("views/form.html", valuesMap);
+                return renderHtml("views/braintree.html");
             }
         });
 
-        get(new Route("/braintree") {
+        post(new Route("/create_customer") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                response.type("text/html");
-                Result<Customer> result = gateway.transparentRedirect().confirmCustomer(request.queryString());
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                String message = "";
-                if (result.isSuccess()) {
-                    message = result.getTarget().getEmail().toString();
-                    valuesMap.put("customerId", result.getTarget().getId());
-                } else {
-                    message = result.getMessage();
-                }
+            public Object handle(Request request, Response response) {
+                CustomerRequest customerRequest = new CustomerRequest()
+                    .firstName(request.queryParams("first_name"))
+                    .lastName(request.queryParams("last_name"))
+                    .creditCard()
+                        .billingAddress()
+                        .postalCode(request.queryParams("postal_code"))
+                        .done()
+                    .number(request.queryParams("number"))
+                    .expirationDate(request.queryParams("expiration_date"))
+                    .cvv(request.queryParams("cvv"))
+                    .done();
 
-                valuesMap.put("message", message);
-                return renderHtml("views/response.html", valuesMap);
+                Result<Customer> result = gateway.customer().create(customerRequest);
+
+                response.type("text/html");
+                if (result.isSuccess()) {
+                  return "<h2>Customer created with name: " + result.getTarget().getFirstName() + " " + result.getTarget().getLastName() + "</h2>" +
+                  "<a href=\"/subscriptions?id=" + result.getTarget().getId() + "\">Click here to sign this Customer up for a recurring payment</a>";
+                } else {
+                  return "<h2>Error: " + result.getMessage() + "</h2>";
+                }
             }
         });
 
         get(new Route("/subscriptions") {
             @Override
             public Object handle(spark.Request request, Response response) {
-                response.type("text/html");
-                Customer customer = gateway.customer().find(request.queryParams("id"));
-                String paymentMethodToken = customer.getCreditCards().get(0).getToken();
+                try {
+                  Customer customer = gateway.customer().find(request.queryParams("id"));
+                  String paymentMethodToken = customer.getCreditCards().get(0).getToken();
 
-                SubscriptionRequest req = new SubscriptionRequest()
-                        .paymentMethodToken(paymentMethodToken)
-                        .planId("test_plan_1");
+                  SubscriptionRequest req = new SubscriptionRequest()
+                      .paymentMethodToken(paymentMethodToken)
+                      .planId("test_plan_1");
 
-                Result<Subscription> result = gateway.subscription().create(req);
+                  Result<Subscription> result = gateway.subscription().create(req);
 
-                String message;
-                if (result.isSuccess()) {
-                    message = String.format("Subscriptions status: %s", result.getTarget().getStatus());
-                } else {
-                    message = String.format("Errors: %s", result.getMessage());
+                  response.type("text/html");
+                  return "<h1>Subscription Status</h1>" + result.getTarget().getStatus();
+                } catch (NotFoundException e) {
+                  return "<h1>No customer found for id: " + request.queryParams("id") + "</h1>";
                 }
-
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("message", message);
-                return renderHtml("views/subscriptions.html", valuesMap);
             }
         });
     }

@@ -1,15 +1,15 @@
 package com.braintree.guide;
 
 import static spark.Spark.get;
+import static spark.Spark.post;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.HashMap;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.text.StrSubstitutor;
 
+import spark.Request;
 import spark.Response;
 import spark.Route;
 
@@ -21,63 +21,51 @@ import com.braintreegateway.TransactionRequest;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-            Environment.SANDBOX,
-            "your_merchant_id",
-            "your_public_key",
-            "your_private_key"
-            );
+        Environment.SANDBOX,
+        "use_your_merchant_id",
+        "use_your_public_key",
+        "use_your_private_key"
+    );
 
-    private static String renderHtml(String templateFname, HashMap<String, String> valuesMap) {
+    private static String renderHtml(String pageName) {
         try {
-            File formFile = new File(templateFname);
-            String formTemplate = FileUtils.readFileToString(formFile);
-            StrSubstitutor sub = new StrSubstitutor(valuesMap);
-            return sub.replace(formTemplate);
+            return FileUtils.readFileToString(new File(pageName));
         } catch (IOException e) {
-            return "";
+            return "Couldn't find " + pageName;
         }
     }
 
     public static void main(String[] args) {
         get(new Route("/") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                // set the response type
+            public Object handle(Request request, Response response) {
                 response.type("text/html");
-
-                String braintreeUrl = gateway.transparentRedirect().url();
-                TransactionRequest trParams = new TransactionRequest()
-                        .type(Transaction.Type.SALE)
-                        .amount(new BigDecimal("1000.00"))
-                        .options()
-                            .submitForSettlement(true)
-                            .done();
-
-                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
-
-                // return HTML with braintreeUrl and trData intermixed
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("braintreeUrl", braintreeUrl);
-                valuesMap.put("trData", trData);
-                return renderHtml("views/form.html", valuesMap);
+                return renderHtml("views/braintree.html");
             }
         });
 
-        get(new Route("/braintree") {
+        post(new Route("/create_transaction") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                response.type("text/html");
-                Result<Transaction> result = gateway.transparentRedirect().confirmTransaction(request.queryString());
-                String message = "";
-                if (result.isSuccess()) {
-                    message = result.getTarget().getStatus().toString();
-                } else {
-                    message = result.getMessage();
-                }
+            public Object handle(Request request, Response response) {
+                TransactionRequest transactionRequest = new TransactionRequest()
+                    .amount(new BigDecimal("1000.00"))
+                    .creditCard()
+                        .number(request.queryParams("number"))
+                        .cvv(request.queryParams("cvv"))
+                        .expirationDate(request.queryParams("expiration_date"))
+                        .done()
+                    .options()
+                        .submitForSettlement(true)
+                        .done();
 
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("message", message);
-                return renderHtml("views/response.html", valuesMap);
+                Result<Transaction> result = gateway.transaction().sale(transactionRequest);
+
+                response.type("text/html");
+                if (result.isSuccess()) {
+                  return "<h1>Success! Transaction ID: " + result.getTarget().getId() + "</h1>";
+                } else {
+                  return "<h1>Error: " + result.getMessage() + "</h1>";
+                }
             }
         });
     }

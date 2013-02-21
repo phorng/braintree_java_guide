@@ -1,14 +1,15 @@
 package com.braintree.guide;
 
 import static spark.Spark.get;
+import static spark.Spark.post;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.math.BigDecimal;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.text.StrSubstitutor;
 
+import spark.Request;
 import spark.Response;
 import spark.Route;
 
@@ -17,61 +18,58 @@ import com.braintreegateway.Customer;
 import com.braintreegateway.CustomerRequest;
 import com.braintreegateway.Environment;
 import com.braintreegateway.Result;
+import com.braintreegateway.Transaction;
+import com.braintreegateway.TransactionRequest;
 
 public class App {
     private static BraintreeGateway gateway = new BraintreeGateway(
-            Environment.SANDBOX,
-            "your_merchant_id",
-            "your_public_key",
-            "your_private_key"
-            );
+        Environment.SANDBOX,
+        "use_your_merchant_id",
+        "use_your_public_key",
+        "use_your_private_key"
+    );
 
-    static String renderHtml(String templateFname, HashMap<String, String> valuesMap) {
+    private static String renderHtml(String pageName) {
         try {
-            File formFile = new File(templateFname);
-            String formTemplate = FileUtils.readFileToString(formFile);
-            StrSubstitutor sub = new StrSubstitutor(valuesMap);
-            return sub.replace(formTemplate);
+            return FileUtils.readFileToString(new File(pageName));
         } catch (IOException e) {
-            return "";
+            return "Couldn't find " + pageName;
         }
     }
 
     public static void main(String[] args) {
         get(new Route("/") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                // set the response type
+            public Object handle(Request request, Response response) {
                 response.type("text/html");
-
-                String braintreeUrl = gateway.transparentRedirect().url();
-                CustomerRequest trParams = new CustomerRequest();
-
-                String trData = gateway.transparentRedirect().trData(trParams, "http://localhost:4567/braintree");
-
-                // return HTML with braintreeUrl and trData interpolated
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("braintreeUrl", braintreeUrl);
-                valuesMap.put("trData", trData);
-                return renderHtml("views/form.html", valuesMap);
+                return renderHtml("views/braintree.html");
             }
         });
 
-        get(new Route("/braintree") {
+        post(new Route("/create_customer") {
             @Override
-            public Object handle(spark.Request request, Response response) {
-                response.type("text/html");
-                Result<Customer> result = gateway.transparentRedirect().confirmCustomer(request.queryString());
-                String message = "";
-                if (result.isSuccess()) {
-                    message = result.getTarget().getEmail().toString();
-                } else {
-                    message = result.getMessage();
-                }
+            public Object handle(Request request, Response response) {
+                CustomerRequest customerRequest = new CustomerRequest()
+                    .firstName(request.queryParams("first_name"))
+                    .lastName(request.queryParams("last_name"))
+                    .creditCard()
+                    .billingAddress()
+                        .postalCode(request.queryParams("postal_code"))
+                        .done()
+                    .number(request.queryParams("number"))
+                    .expirationDate(request.queryParams("expiration_date"))
+                    .cvv(request.queryParams("cvv"))
+                    .done();
 
-                HashMap<String, String> valuesMap = new HashMap<String, String>();
-                valuesMap.put("message", message);
-                return renderHtml("views/response.html", valuesMap);
+                Result<Customer> result = gateway.customer().create(customerRequest);
+
+                response.type("text/html");
+                if (result.isSuccess()) {
+                  return "<h2>Customer created with name: " + result.getTarget().getFirstName() + " " + result.getTarget().getLastName() + "</h2>";
+                } else {
+
+                  return "<h2>Error: " + result.getMessage() + "</h2>";
+                }
             }
         });
     }
