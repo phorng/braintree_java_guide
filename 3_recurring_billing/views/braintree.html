@@ -20,16 +20,16 @@
         </p>
         <h2>Credit Card</h2>
         <p>
-          <label for='credit_card_number'>Credit Card Number</label>
-          <input type='text' data-encrypted-name='number' id='credit_card_number'></input>
+          <label>Card Number</label>
+          <input type="text" size="20" autocomplete="off" data-encrypted-name="number" />
         </p>
         <p>
-          <label for='credit_card_exp'>Credit Card Expiry (mm/yyyy)</label>
-          <input type='text' data-encrypted-name='expiration_date' id='credit_card_exp'></input>
+          <label>CVV</label>
+          <input type="text" size="4" autocomplete="off" data-encrypted-name="cvv" />
         </p>
         <p>
-          <label for='credit_card_cvv'>CVV</label>
-          <input type='text' data-encrypted-name='cvv' id='credit_card_cvv'></input>
+          <label>Expiration (MM/YYYY)</label>
+          <input type="text" size="2" data-encrypted-name="month" /> / <input type="text" size="4" data-encrypted-name="year" />
         </p>
         <input class='submit-button' type='submit' />
       </form>

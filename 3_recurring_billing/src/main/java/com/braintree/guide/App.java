@@ -57,12 +57,13 @@ public class App {
                     .lastName(request.queryParams("last_name"))
                     .creditCard()
                         .billingAddress()
-                        .postalCode(request.queryParams("postal_code"))
-                        .done()
-                    .number(request.queryParams("number"))
-                    .expirationDate(request.queryParams("expiration_date"))
-                    .cvv(request.queryParams("cvv"))
-                    .done();
+                            .postalCode(request.queryParams("postal_code"))
+                            .done()
+                        .number(request.queryParams("number"))
+                        .expirationMonth(request.queryParams("month"))
+                        .expirationYear(request.queryParams("year"))
+                        .cvv(request.queryParams("cvv"))
+                        .done();
 
                 Result<Customer> result = gateway.customer().create(customerRequest);
 
