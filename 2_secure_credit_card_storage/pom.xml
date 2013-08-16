@@ -11,12 +11,6 @@
 
   <repositories>
     <repository>
-      <id>braintree</id>
-      <name>Braintree</name>
-      <url>http://braintree.github.com/braintree_java/releases</url>
-    </repository>
-
-    <repository>
       <id>Spark repository</id>
       <url>http://www.sparkjava.com/nexus/content/repositories/spark/</url>
     </repository>
@@ -24,6 +18,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.target>1.6</maven.compiler.target>
+    <maven.compiler.source>1.6</maven.compiler.source>
   </properties>
 
   <dependencies>
@@ -33,9 +29,9 @@
       <version>0.9.9.3-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>com.braintreegateway</groupId>
+      <groupId>com.braintreepayments.gateway</groupId>
       <artifactId>braintree-java</artifactId>
-      <version>2.15.0</version>
+      <version>2.22.1</version>
     </dependency>
     <dependency>
       <groupId>commons-lang</groupId>
